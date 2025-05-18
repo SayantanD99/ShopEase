@@ -6,7 +6,6 @@ import com.stripe.model.PaymentLink;
 import com.stripe.model.Price;
 import com.stripe.param.PaymentLinkCreateParams;
 import com.stripe.param.PriceCreateParams;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +15,13 @@ public class StripePaymentGateway implements IPaymentGateway {
     @Value("${stripe.apikey}")
     private String stripeApiKey;
 
+    @Value("${stripe.priority:1}") // Default priority if not set in properties
+    private int priority;
+
+    @Override
+    public int getPriority() {
+        return this.priority;
+    }
 
     @Override
     public String createStandardPaymentLink(Long amount, String orderId, String phoneNumber, String name, String email) {

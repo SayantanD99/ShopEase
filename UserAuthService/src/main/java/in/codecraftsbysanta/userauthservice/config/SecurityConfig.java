@@ -14,14 +14,15 @@ import javax.crypto.SecretKey;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception{
-
-        httpSecurity.cors().disable();
-        httpSecurity.csrf().disable();
-        httpSecurity.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
-
-        return httpSecurity.build();
-
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http.csrf().disable()
+                .authorizeHttpRequests()
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/user/**").hasRole("USER")
+                .anyRequest().authenticated()
+                .and()
+                .httpBasic(); // Or JWT-based authentication
+        return http.build();
     }
 
     @Bean

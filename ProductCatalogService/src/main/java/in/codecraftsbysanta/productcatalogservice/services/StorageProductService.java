@@ -64,6 +64,11 @@ public class StorageProductService implements IProductService {
     @Override
     public Product getProductBasedOnUser(Long productId, Long userId) {
         Optional<Product> productOptional = productRepo.findProductById(productId);
+
+        if (productOptional.isEmpty()) {
+            return null;
+        }
+
         UserDTO userDTO = restTemplate.getForEntity("http://userservice/users/{userId}", UserDTO.class,userId).getBody();
         System.out.println(userDTO.getEmail());
 

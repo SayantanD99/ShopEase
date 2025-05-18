@@ -1,5 +1,7 @@
 package in.codecraftsbysanta.userauthservice.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import in.codecraftsbysanta.userauthservice.clients.KafkaProducerClient;
 import in.codecraftsbysanta.userauthservice.dtos.EmailDTO;
 import in.codecraftsbysanta.userauthservice.exceptions.PasswordMismatchException;
@@ -9,18 +11,14 @@ import in.codecraftsbysanta.userauthservice.models.Role;
 import in.codecraftsbysanta.userauthservice.models.Session;
 import in.codecraftsbysanta.userauthservice.models.Status;
 import in.codecraftsbysanta.userauthservice.models.User;
+import in.codecraftsbysanta.userauthservice.repos.RoleRepo;
 import in.codecraftsbysanta.userauthservice.repos.SessionRepo;
 import in.codecraftsbysanta.userauthservice.repos.UserRepo;
-
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.antlr.v4.runtime.misc.Pair;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -30,6 +28,8 @@ import java.util.*;
 
 @Service
 public class AuthService implements IAuthService{
+
+    private final String jwtSigningKey = "your-secure-signing-key"; // Replace with a secure key
 
     @Autowired
     private UserRepo userRepo;
@@ -41,6 +41,9 @@ public class AuthService implements IAuthService{
     private SessionRepo sessionRepo;
 
     @Autowired
+    private RoleRepo roleRepo;
+
+    @Autowired
     private SecretKey secretKey;
 
     @Autowired
@@ -48,6 +51,13 @@ public class AuthService implements IAuthService{
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    public String generateJwtToken(String email) {
+        return Jwts.builder()
+                .setSubject(email)
+                .signWith(SignatureAlgorithm.HS256, jwtSigningKey)
+                .compact();
+    }
 
     @Override
     public User signUp(String email, String password) throws UserAlreadyExistsException {
@@ -67,15 +77,10 @@ public class AuthService implements IAuthService{
         newUser.setCreatedAt(new Date());
         newUser.setLastUpdatedAt(new Date());
 
-        Role role = new Role();
+        Role userRole = roleRepo.findByValue("USER")
+                    .orElseThrow(() -> new RuntimeException("Role not found"));
 
-        role.setValue("USER");
-
-        List<Role> roles = new ArrayList<>();
-
-        roles.add(role);
-
-        newUser.setRoles(roles);
+        newUser.setRoles(Set.of(userRole));
 
         userRepo.save(newUser);
 
@@ -121,7 +126,8 @@ public class AuthService implements IAuthService{
         payload.put("exp",nowInMillis+100000);
         payload.put("userId",userOptional.get().getId());
         payload.put("iss","scaler");
-        payload.put("scope",userOptional.get().getRoles());
+        payload.put("roles", userOptional.get().getRoles().stream()
+            .map(Role::getValue).toList());
 
 //        MacAlgorithm algorithm = Jwts.SIG.HS256;
 //        SecretKey secretKey = algorithm.key().build();

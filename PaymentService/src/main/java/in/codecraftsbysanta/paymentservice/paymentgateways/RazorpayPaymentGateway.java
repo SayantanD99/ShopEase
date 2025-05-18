@@ -1,13 +1,11 @@
 package in.codecraftsbysanta.paymentservice.paymentgateways;
 
 import com.razorpay.PaymentLink;
-import com.razorpay.Payment;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
-
 import org.json.JSONObject;
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -16,6 +14,13 @@ public class RazorpayPaymentGateway implements IPaymentGateway {
     @Autowired
     private RazorpayClient razorpayClient;
 
+    @Value("${razorpay.priority:2}") // Default priority if not set in properties
+    private int priority;
+
+    @Override
+    public int getPriority() {
+        return this.priority;
+    }
 
     public String createStandardPaymentLink(Long amount, String orderId, String phoneNumber, String name, String email) {
 

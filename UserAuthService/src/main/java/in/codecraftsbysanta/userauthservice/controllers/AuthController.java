@@ -1,9 +1,6 @@
 package in.codecraftsbysanta.userauthservice.controllers;
 
-import in.codecraftsbysanta.userauthservice.dtos.LoginRequest;
-import in.codecraftsbysanta.userauthservice.dtos.SignUpRequest;
-import in.codecraftsbysanta.userauthservice.dtos.UserDTO;
-import in.codecraftsbysanta.userauthservice.dtos.ValidateTokenDTO;
+import in.codecraftsbysanta.userauthservice.dtos.*;
 import in.codecraftsbysanta.userauthservice.exceptions.PasswordMismatchException;
 import in.codecraftsbysanta.userauthservice.exceptions.UnauthorizedException;
 import in.codecraftsbysanta.userauthservice.exceptions.UserAlreadyExistsException;
@@ -21,6 +18,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/auth")
@@ -51,6 +51,10 @@ public class AuthController {
         try{
 
             Pair<User, String> response = authService.login(loginRequest.getEmail(), loginRequest.getPassword());
+
+            if (response == null || response.a == null || response.b == null) {
+                return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            }
 
             MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
 
@@ -92,7 +96,15 @@ public class AuthController {
 
         userDTO.setId(user.getId());
         userDTO.setEmail(user.getEmail());
-        //userDTO.setRoles(user.getRoles());
+
+        Set<RoleDTO> roleDTOs = user.getRoles().stream().map(role -> {
+            RoleDTO dto = new RoleDTO();
+            dto.setId(role.getId());
+            dto.setValue(role.getValue());
+            return dto;
+        }).collect(Collectors.toSet());
+
+        userDTO.setRoles(roleDTOs);
 
         return userDTO;
 
